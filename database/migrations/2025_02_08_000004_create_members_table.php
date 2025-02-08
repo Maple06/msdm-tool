@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('phone')->unique();
-            $table->enum('role',['staff','headofdivision','headofdepartement','vicechairman','chairman'])->default('staff');
+            $table->enum('role',['staff','headofdivision','headofdepartement','secretary','finance','vicechairman','chairman'])->default('staff');
             $table->string('division_code')->nullable();
             $table->string('departement_code')->nullable();
             $table->timestamps();
