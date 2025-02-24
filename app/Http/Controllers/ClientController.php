@@ -2,88 +2,58 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Member;
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\QueryException;
 use Exception;
+use DB;
 
 class ClientController extends Controller
 {
-    public function index(){
+    public function index(Request $request)
+    {
         try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            $search = $request->input('search');
+
+            // Ambil data member, jika ada pencarian, filter berdasarkan nama
+            $members = Member::when(!empty($search), function ($query) use ($search) {
+                $trimmedSearch = trim($search);
+                return $query->whereRaw('LOWER(name) LIKE ?', [strtolower("%{$trimmedSearch}%")]); // Case-insensitive untuk MySQL
+            })
+            ->paginate(10);
+
+            // Hitung performa untuk tiap member
+            // $performances = $members->map(function ($member) {
+            //     return [
+            //         'name' => $member->name,
+            //         'performance' => $member->calculatePerformance(),
+            //     ];
+            // });
+
+            return view('client.index', compact( 'search','members'));
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function create(Request $request){
-        try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+    public function show(Request $request)
+    {
+        $member = Member::find($request->id); // Ambil member berdasarkan ID
+        if (!$member) {
+            return abort(404);
         }
+
+        $performances = $member->calculatePerformance();
+
+        $monthlyPerformances = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $monthlyPerformance = $member->calculateMonthlyPerformance($month, date('Y')); // Gunakan tahun текущий
+            $monthlyPerformances[] = $monthlyPerformance;
+        }
+
+        return view('client.show', compact('member', 'monthlyPerformances','performances'));
     }
 
-    public function store(Request $request){
-        try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
-        }
-    }
-
-    public function edit(Request $request){
-        try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
-        }
-    }
-
-    public function update(Request $request){
-        try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
-        }
-    }
-
-    public function destroy(Request $request){
-        try {
-            // $activity = Activity::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
-        }
-    }
 }

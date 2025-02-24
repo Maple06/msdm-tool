@@ -2,56 +2,49 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Activity;
+use App\Models\Member;
+use App\Models\Attendance;
+use App\Models\Participant;
+use App\Models\Departement;
+use App\Models\Division;
+use Faker\Factory as Faker;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $departement = [
-            ['id'=>'E-Kraf','name'=>'Ekonomi Kreatif'],
-            ['id'=>'MedKom','name'=>'Media dan Komunikasi'],
-            ['id'=>'SDM','name'=>'Sumber Daya Manusia'],
-            ['id'=>'KesMa','name'=>'Kesejahteraan Manusia'],
-            ['id'=>'RisTek','name'=>'Riset dan Teknologi']
+        $faker = Faker::create('id_ID');
+
+        // Seed Departements
+        $departements = [
+            ['id' => 'E-Kraf', 'name' => 'Ekonomi Kreatif'],
+            ['id' => 'MedKom', 'name' => 'Media dan Komunikasi'],
+            ['id' => 'SDM', 'name' => 'Sumber Daya Manusia'],
+            ['id' => 'KesMa', 'name' => 'Kesejahteraan Manusia'],
+            ['id' => 'RisTek', 'name' => 'Riset dan Teknologi'],
         ];
+        Departement::insert($departements);
 
-        $division = [
-            ['id'=>'KWU','name'=>'Kewirausahaan','dep'=>'E-Kraf'],
-            ['id'=>'Sponsor','name'=>'Sponsorship','dep'=>'E-Kraf'],
-            ['id'=>'MedPub','name'=>'Media dan Publikasi','dep'=>'MedKom'],
-            ['id'=>'HubEks','name'=>'Hubungan Eksternal','dep'=>'MedKom'],
-            ['id'=>'MSDM','name'=>'Management Sumber Daya Manusia','dep'=>'SDM'],
-            ['id'=>'PSDM','name'=>'Pengembangan Sumber Daya Manusia','dep'=>'SDM'],
-            ['id'=>'MiBa','name'=>'Minat dan Bakat','dep'=>'KesMa'],
-            ['id'=>'RTH','name'=>'Rumah Tangga Himpunan','dep'=>'KesMa'],
-            ['id'=>'Akademik','name'=>'Akademik','dep'=>'RisTek'],
-            ['id'=>'PemTek','name'=>'Pengembangan Teknolgi','dep'=>'RisTek'],
+        // Seed Divisions
+        $divisions = [
+            ['id' => 'KWU', 'name' => 'Kewirausahaan', 'departement_code' => 'E-Kraf'],
+            ['id' => 'Sponsor', 'name' => 'Sponsorship', 'departement_code' => 'E-Kraf'],
+            ['id' => 'MedPub', 'name' => 'Media dan Publikasi', 'departement_code' => 'MedKom'],
+            ['id' => 'HubEks', 'name' => 'Hubungan Eksternal', 'departement_code' => 'MedKom'],
+            ['id' => 'MSDM', 'name' => 'Management Sumber Daya Manusia', 'departement_code' => 'SDM'],
+            ['id' => 'PSDM', 'name' => 'Pengembangan Sumber Daya Manusia', 'departement_code' => 'SDM'],
+            ['id' => 'MiBa', 'name' => 'Minat dan Bakat', 'departement_code' => 'KesMa'],
+            ['id' => 'RTH', 'name' => 'Rumah Tangga Himpunan', 'departement_code' => 'KesMa'],
+            ['id' => 'Akademik', 'name' => 'Akademik', 'departement_code' => 'RisTek'],
+            ['id' => 'PemTek', 'name' => 'Pengembangan Teknolgi', 'departement_code' => 'RisTek'],
         ];
+        Division::insert($divisions);
 
-        foreach($departement as $d){
-            DB::table('departements')->insert([
-                'id'=>$d['id'],
-                'name'=>$d['name'],
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-
-        foreach($division as $d){
-            DB::table('divisions')->insert([
-                'id'=>$d['id'],
-                'name'=>$d['name'],
-                'departement_code'=>$d['dep'],
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-
+        $user = [
+            
+        ];
     }
 }

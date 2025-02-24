@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('nrp');
+            $table->string('owned_by')->nullable();
             $table->enum('category',['rapat','proker','lainnya']);
-            $table->date('act_date');
+            $table->integer('must_attend');
+            $table->foreign('nrp')->references('nrp')->on('members');
             $table->timestamps();
         });
     }

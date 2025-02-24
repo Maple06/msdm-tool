@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('division_code')->nullable();
             $table->string('departement_code')->nullable();
             $table->timestamps();
+            $table->foreign('division_code')->references('id')->on('divisions');
+            $table->foreign('departement_code')->references('id')->on('departements');
         });
     }
 

@@ -2,89 +2,141 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\MemberImport;
 use App\Models\Member;
+use App\Models\Division;
+use App\Models\Departement;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Exception;
 use Illuminate\Support\Facades\Log;
-Use Exception;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MemberController extends Controller
 {
-    public function index(){
+    public function index()
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            $members = Member::all();
+            return view('admin.member.index', compact('members'));
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function create(Request $request){
+    public function create()
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            $divisions = Division::all();
+            $departements = Departement::all();
+            return view('admin.member.create', compact('divisions', 'departements'));
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            $validatedData = $request->validate([
+                'nrp' => 'required|string|unique:members,nrp',
+                'name' => 'required|string',
+                'email' => 'required|email|unique:members,email',
+                'phone' => 'required|string',
+                'role' => 'required|string',
+                'division_code' => 'required|string',
+                'departement_code' => 'required|string',
+            ]);
+
+            Member::create($validatedData);
+            return redirect()->route('member.index')->with('success', 'Member berhasil ditambahkan!');
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->withInput()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->validator)->with('error', 'Data yang anda masukkan tidak valid. Silakan periksa kembali.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function edit(Request $request){
+    public function edit($id)
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            $member = Member::find($id);
+            $divisions = Division::all();
+            $departements = Departement::all();
+            return view('admin.member.edit', compact('member', 'divisions', 'departements'));
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function update(Request $request){
+    public function update(Request $request, $nrp)
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            // Validasi input
+            $validatedData = $request->validate([
+                'nrp' => 'required|string|unique:members,nrp,' . $nrp . ',nrp',
+                'name' => 'required|string',
+                'email' => 'required|email|unique:members,email,' . $nrp . ',nrp',
+                'phone' => 'required|string',
+                'role' => 'required|string',
+                'division_code' => 'required|string',
+                'departement_code' => 'required|string',
+            ]);
+
+            // Update data berdasarkan NRP
+            Member::where('nrp', $nrp)->update($validatedData);
+
+            return redirect()->route('member.index')->with('success', 'Member berhasil diupdate!');
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->withInput()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->validator)->with('error', 'Data yang anda masukkan tidak valid. Silakan periksa kembali.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
     }
 
-    public function destroy(Request $request){
+    public function destroy($id)
+    {
         try {
-            $activity = Member::all()->paginate(10);
-            return view('admin.activity.index', compact('activity'));
-        } catch (QueryException $e) { // Contoh: Menangani exception database
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.'); // Pesan error ramah pengguna
-        } catch (Exception $e) { // Tangani exception umum
-            Log::error($e->getMessage()); // Catat error ke log
-            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.'); // Pesan error ramah pengguna
+            Member::destroy($id);
+            return redirect()->route('member.index')->with('success', 'Member berhasil dihapus!');
+        } catch (QueryException $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan dengan database. Silakan coba lagi.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
         }
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'files' => 'required|mimes:xlsx,csv',
+        ]);
+
+        Excel::import(new MemberImport, $request->file('files'));
+
+        return back()->with('success', 'Data absensi berhasil diimport!');
     }
 }
