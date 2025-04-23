@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use DB;
+use Carbon\Carbon;
 
 class ClientController extends Controller
 {
@@ -23,15 +24,7 @@ class ClientController extends Controller
             })
             ->paginate(10);
 
-            // Hitung performa untuk tiap member
-            // $performances = $members->map(function ($member) {
-            //     return [
-            //         'name' => $member->name,
-            //         'performance' => $member->calculatePerformance(),
-            //     ];
-            // });
-
-            return view('client.index', compact( 'search','members'));
+            return view('client.index', compact('search', 'members'));
         } catch (Exception $e) {
             Log::error($e->getMessage());
             return back()->with('error', 'Terjadi kesalahan. Silakan coba lagi.');
@@ -40,20 +33,82 @@ class ClientController extends Controller
 
     public function show(Request $request)
     {
-        $member = Member::find($request->id); // Ambil member berdasarkan ID
+        $member = Member::find($request->id); // Fetch the member by ID
         if (!$member) {
             return abort(404);
         }
 
-        $performances = $member->calculatePerformance();
+        // Fetch all required data
+        $attendances = \DB::table('attendances')->where('nrp', $member->nrp)->get(); // Fetch attendances for the member
+        $participants = \DB::table('participants')->get()->keyBy('id');
+        $volunteers = \DB::table('volunteers')->get()->keyBy('id');
+        $activities = \DB::table('activities')->pluck('name', 'id'); // Map activity names by their IDs
 
         $monthlyPerformances = [];
+        $totalAttendance = 0;
+        $totalMustAttend = 0;
+        $totalParticipation = 0;
+        $totalEvents = 0;
+
         for ($month = 1; $month <= 12; $month++) {
-            $monthlyPerformance = $member->calculateMonthlyPerformance($month, date('Y')); // Gunakan tahun текущий
-            $monthlyPerformances[] = $monthlyPerformance;
+            // Filter attendances for the specific month
+            $monthlyAttendance = $attendances->filter(function ($attendance) use ($month) {
+                try {
+                    $attendanceMonth = Carbon::parse($attendance->created_at)->month;
+                    return $attendanceMonth == $month;
+                } catch (\Exception $e) {
+                    return false;
+                }
+            });
+
+            // Filter attendances with status 'hadir'
+            $monthlyAttendanceFiltered = $monthlyAttendance->filter(function ($attendance) {
+                return strtolower($attendance->status) === 'hadir';
+            });
+
+            // Get activity names for the member
+            $activityNames = $monthlyAttendanceFiltered
+                ->map(function ($attendance) use ($participants, $volunteers, $activities) {
+                    $participantId = $attendance->participant_of;
+                    $volunteerId = $attendance->volunteer_of;
+
+                    $actId = $participants->get($participantId)->act_id ?? $volunteers->get($volunteerId)->act_id ?? null;
+                    return $actId ? $activities->get($actId) : null;
+                })
+                ->filter() // Remove null values
+                ->unique() // Ensure unique activity names
+                ->values(); // Reset the keys
+
+            // Calculate attendance and must attend counts
+            $attendanceCount = $monthlyAttendanceFiltered->count();
+            $mustAttendCount = $monthlyAttendance->count();
+
+            // Update totals
+            $totalAttendance += $attendanceCount;
+            $totalMustAttend += $mustAttendCount;
+            $totalParticipation += $activityNames->count();
+            $totalEvents += $mustAttendCount;
+
+            // Calculate attendance percentage
+            $attendancePercentage = $mustAttendCount > 0
+                ? ($attendanceCount / $mustAttendCount) * 100
+                : 0;
+
+            $monthlyPerformances[] = [
+                'attendance_percentage' => $attendancePercentage,
+                'attendance' => $attendanceCount,
+                'must_attend' => $mustAttendCount,
+                'activity_names' => $activityNames,
+            ];
         }
 
-        return view('client.show', compact('member', 'monthlyPerformances','performances'));
-    }
+        $performances = [
+            'total_attendance' => $totalAttendance,
+            'total_must_attend' => $totalMustAttend,
+            'total_participation' => $totalParticipation,
+            'total_event' => $totalEvents,
+        ];
 
+        return view('client.show', compact('member', 'monthlyPerformances', 'performances'));
+    }
 }
