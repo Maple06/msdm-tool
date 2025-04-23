@@ -28,7 +28,7 @@
             <div class="mb-4">
                 <label for="password" class="block text-sm font-medium text-gray-600">Password</label>
                 <input type="password" name="password" id="password" required
-                    class="w-full px-4 py-2 mt-1 border rounded-md focus:outline-none focus:ring focus:border-blue-300">
+                    class="w-full px-4 py-2 mt-1 border rounded-md focus:outline-none focus:ring focus:border-blue-300" minlength="6">
             </div>
 
             <div class="flex items-center justify-between">

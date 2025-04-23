@@ -18,7 +18,7 @@ class AttendanceController extends Controller
 {
     public function index(){
         try {
-            $attendances = Attendance::all();
+            $attendances = Attendance::with(['member', 'participant.activity', 'volunteer.activity'])->get();
             return view('admin.attendance.index', compact('attendances'));
         } catch (QueryException $e) { // Contoh: Menangani exception database
             Log::error($e->getMessage()); // Catat error ke log

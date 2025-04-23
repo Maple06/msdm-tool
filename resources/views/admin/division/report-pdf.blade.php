@@ -60,17 +60,17 @@
     <div class="member-card">
         <div class="member-info" style="flex: 1; min-width: 250px; padding-left: 50px; font-size: 14px;">
             <h3 style="font-size: 13px; font-weight: bold;">Divisi {{ $division->name }}</h3>
-            <p style="font-size: 11px;">Rata-rata kehadiran bulan ini : {{ $rerata }}</p>
+            <p style="font-size: 11px;">Rata-rata kehadiran bulan ini : {{ $rerata }}%</p>
             <p style="font-size: 10px;">{!! $pesan !!}</p>
         </div>
     </div>
     @foreach ($reportData as $index => $data)
         <div class="member-card">
             <div class="member-info" style="flex: 1; min-width: 250px; padding-left: 50px; font-size: 14px;">
-                <h3 style="font-size: 13px; font-weight: bold;">{{ $data['member']->name }}-{{ $data['member']->nrp }}</h3>
+                <h3 style="font-size: 13px; font-weight: bold;">{{ $data['member']->name }} - {{ $data['member']->nrp }}</h3>
                 <p style="font-size: 10px;"><strong>Kegiatan yang diikuti:</strong></p>
                 @foreach ($data['monthlyPerformances'][$bulan_int-1]['activityName'] as $item)
-                    <li style="font-size: 10px;">{{ $item->name }}</li>
+                    <li style="font-size: 10px;">{{ $item }}</li>
                 @endforeach
             </div>
         </div>
@@ -83,7 +83,12 @@
             <div class="member-info" style="flex: 1; min-width: 250px; padding-left: 50px; font-size: 14px;">
                 <h3 style="font-size: 13px; font-weight: bold;">{{ $data['member']->name }}</h3>
                 <p style="font-size: 10px;"><strong>NRP:</strong> {{ $data['member']->nrp }}</p>
-                <p style="font-size: 10px;"><strong>Total Kehadiran:</strong> {{ $data['monthlyPerformances'][$bulan_int-1]['attendance'] }} dari {{ $data['monthlyPerformances'][$bulan_int-1]['must_attend'] }} ({{ $data['monthlyPerformances'][$bulan_int-1]['attendance_percentage'] }}%)</p>
+                <p style="font-size: 10px;"><strong>Total Kehadiran:</strong> 
+                    {{ $data['monthlyPerformances'][$bulan_int-1]['attendance'] ?? 0 }} 
+                    dari 
+                    {{ $data['monthlyPerformances'][$bulan_int-1]['must_attend'] ?? 0 }} 
+                    ({{ $data['monthlyPerformances'][$bulan_int-1]['attendance_percentage'] ?? 0 }}%)
+                </p>
                 <p style="font-size: 10px;"><strong>Rekomendasi:</strong> {{ $data['monthlyPerformances'][$bulan_int-1]['recommendation'] }}</p>
             </div>
         </div>

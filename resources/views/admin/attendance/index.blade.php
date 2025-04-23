@@ -41,7 +41,7 @@
                 <tr>
                     <td class="px-4 py-2 whitespace-nowrap">{{ $index + 1 }}</td>
                     <td class="px-4 py-2 whitespace-nowrap">{{ $attendance->nrp }}</td>
-                    <td class="px-4 py-2 whitespace-nowrap">{{ $attendance->member->name }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">{{ $attendance->member->name ?? "N/A" }}</td>
                     <td class="px-4 py-2 whitespace-nowrap">
                         {{ $attendance->participant && $attendance->participant->activity ? $attendance->participant->activity->name : $attendance->volunteer->activity->name }}
                     </td>

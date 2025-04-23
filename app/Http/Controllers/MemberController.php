@@ -115,10 +115,10 @@ class MemberController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Member $member)
     {
         try {
-            Member::destroy($id);
+            $member->delete();
             return redirect()->route('member.index')->with('success', 'Member berhasil dihapus!');
         } catch (QueryException $e) {
             Log::error($e->getMessage());

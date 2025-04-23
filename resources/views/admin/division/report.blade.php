@@ -104,8 +104,12 @@
             var ctx = document.getElementById('performanceChart' + data.member.nrp).getContext('2d');
             var monthlyPerformances = data.monthlyPerformances || [];
 
-            var attendanceData = monthlyPerformances.map(performance => {
-                return performance && performance.attendance_percentage ? performance.attendance_percentage : 0;
+            var attendanceData = Array(12).fill(0);
+
+            monthlyPerformances.forEach((performance, index) => {
+                if (performance && performance.attendance_percentage) {
+                    attendanceData[index] = performance.attendance_percentage;
+                }
             });
 
             var performanceData = {

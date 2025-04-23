@@ -124,50 +124,93 @@ class DivisionController extends Controller
     public function report($id, Request $request)
     {
         $selectedMonth = $request->input('month', Carbon::now()->format('Y-m'));
-        
         $bulan = explode("-", $selectedMonth)[1];
-
-        // Jika ingin output integer
         $bulan_int = (int) $bulan;
 
-        $division = Division::find($id);
+        $participants = \DB::table('participants')->get()->keyBy('id');
+        $volunteers = \DB::table('volunteers')->get()->keyBy('id');
+        $activities = \DB::table('activities')->pluck('name', 'id');
+        
+        // Fetch division and members with eager loading
+        $division = Division::with('members')->find($id);
         if (!$division) {
             abort(404);
         }
 
-        $members = $division->members;
+        $memberIds = $division->members->pluck('nrp');
+
+        $attendanceData = \DB::table('attendances')
+            ->whereIn('nrp', $memberIds)
+            ->get()
+            ->groupBy('nrp');
 
         $reportData = [];
-        foreach ($members as $member) {
-            $performances = $member->calculatePerformance(); // Data performa keseluruhan member
-
+        $rerata = 0;
+        $totalMembers = 0;
+        
+        foreach ($division->members as $member) {
             $monthlyPerformances = [];
+            $memberAttendance = $attendanceData->get($member->nrp, collect());
+
             for ($month = 1; $month <= 12; $month++) {
-                $monthlyPerformance = $member->calculateMonthlyPerformance($month, date('Y'));
-                $monthlyPerformances[] = $monthlyPerformance;
+                $monthlyAttendance = $memberAttendance->filter(function ($attendance) use ($month) {
+                    try {
+                        $attendanceMonth = Carbon::parse($attendance->created_at)->month;
+                        return $attendanceMonth == $month;
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+
+                $activityNames = $monthlyAttendance
+                ->map(function ($attendance) use ($participants, $volunteers, $activities) {
+                    // Get the participant or volunteer ID
+                    $participantId = $attendance->participant_of;
+                    $volunteerId = $attendance->volunteer_of;
+
+                    // Retrieve the act_id from participants or volunteers
+                    $actId = $participants->get($participantId)->act_id ?? $volunteers->get($volunteerId)->act_id ?? null;
+
+                    // Retrieve the activity name from the activities table
+                    return $actId ? $activities->get($actId) : null;
+                })
+                ->filter() // Remove null values
+                ->values();
+
+                $attendanceCount = $monthlyAttendance->filter(function ($attendance) {
+                    return strtolower($attendance->status) === 'hadir';
+                })->count();
+
+                $mustAttendCount = $monthlyAttendance->count();
+
+                $attendancePercentage = $mustAttendCount > 0
+                    ? ($attendanceCount / $mustAttendCount) * 100
+                    : 0;
+
+                $monthlyPerformances[] = [
+                    'attendance_percentage' => $attendancePercentage,
+                    'activityName' => $activityNames,
+                    'attendance' => $attendanceCount,
+                    'must_attend' => $mustAttendCount,
+                    'recommendation' => $attendancePercentage >= 75 ? 'Good' : 'Needs Improvement',
+                ];
             }
 
             $reportData[] = [
                 'member' => $member,
-                'performances' => $performances, // Tambahkan data performa keseluruhan
-                'monthlyPerformances' => $monthlyPerformances, // Tambahkan data performa bulanan
+                'monthlyPerformances' => $monthlyPerformances,
             ];
-        }
 
-        $rerata = 0;
-
-        foreach ($reportData as $memberData) {
-            // Pastikan bulan yang diminta ada di dalam array monthlyPerformances
-            if (isset($memberData['monthlyPerformances'][$bulan_int - 1]['attendance_percentage'])) {
-                $rerata += $memberData['monthlyPerformances'][$bulan_int - 1]['attendance_percentage'];
-            } else {
-                // Handle kasus jika data tidak ditemukan untuk bulan tersebut
-                // Misalnya, log error atau berikan nilai default
-                Log::warning('Attendance percentage not found for month ' . $bulan_int);
+            if (isset($monthlyPerformances[$bulan_int - 1]['attendance_percentage'])) {
+                $rerata += $monthlyPerformances[$bulan_int - 1]['attendance_percentage'];
+                $totalMembers++;
             }
         }
 
-        return view('admin.division.report', compact('division', 'reportData', 'selectedMonth','rerata'));
+        // Calculate average attendance percentage
+        $rerata = $totalMembers > 0 ? $rerata / $totalMembers : 0;
+
+        return view('admin.division.report', compact('division', 'reportData', 'selectedMonth', 'rerata'));
     }
 
     public function generate($id, Request $request)
@@ -175,50 +218,108 @@ class DivisionController extends Controller
         $selectedMonth = $request->input('month', Carbon::now()->format('Y-m'));
         $pesan = $request->pesan;
         $bulan = explode("-", $selectedMonth)[1];
-
-        // Jika ingin output integer
         $bulan_int = (int) $bulan;
 
-        $division = Division::find($id);
+        $participants = \DB::table('participants')->get()->keyBy('id');
+        $volunteers = \DB::table('volunteers')->get()->keyBy('id');
+        $activities = \DB::table('activities')->pluck('name', 'id'); // Map activity names by their IDs
+
+        // Fetch division and members
+        $division = Division::with('members')->find($id);
         if (!$division) {
             abort(404);
         }
 
-        $members = $division->members;
+        $memberIds = $division->members->pluck('nrp');
+
+        $attendanceData = \DB::table('attendances')
+            ->whereIn('nrp', $memberIds)
+            ->get()
+            ->groupBy('nrp');
 
         $reportData = [];
-        $attendancePercentages = [];
-        foreach ($members as $member) {
-            $performances = $member->calculatePerformance(); // Data performa keseluruhan member
+        $rerata = 0;
+        $totalMembers = 0;
 
+        foreach ($division->members as $member) {
             $monthlyPerformances = [];
+            $memberAttendance = $attendanceData->get($member->nrp, collect());
+
             for ($month = 1; $month <= 12; $month++) {
-                $monthlyPerformance = $member->calculateMonthlyPerformance($month, date('Y'));
-                $monthlyPerformances[] = $monthlyPerformance;
+                // Filter attendance by month
+                $monthlyAttendance = $memberAttendance->filter(function ($attendance) use ($month) {
+                    try {
+                        $attendanceMonth = Carbon::parse($attendance->created_at)->month;
+                        return $attendanceMonth == $month;
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+
+                $monthlyAttendanceFiltered = $memberAttendance->filter(function ($attendance) use ($month) {
+                    try {
+                        $attendanceMonth = Carbon::parse($attendance->created_at)->month;
+                        return $attendanceMonth == $month && strtolower($attendance->status) === 'hadir';
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+
+                $activityNames = $monthlyAttendanceFiltered
+                ->map(function ($attendance) use ($participants, $volunteers, $activities) {
+                    // Get the participant or volunteer ID
+                    $participantId = $attendance->participant_of;
+                    $volunteerId = $attendance->volunteer_of;
+
+                    // Retrieve the act_id from participants or volunteers
+                    $actId = $participants->get($participantId)->act_id ?? $volunteers->get($volunteerId)->act_id ?? null;
+
+                    // Retrieve the activity name from the activities table
+                    return $actId ? $activities->get($actId) : null;
+                })
+                ->filter() // Remove null values
+                ->values();
+
+                // Calculate attendance percentage
+                $attendanceCount = $monthlyAttendance->filter(function ($attendance) {
+                    return strtolower($attendance->status) === 'hadir';
+                })->count();
+
+                $mustAttendCount = $monthlyAttendance->count();
+
+                $attendancePercentage = $mustAttendCount > 0
+                    ? ($attendanceCount / $mustAttendCount) * 100
+                    : 0;
+
+                $monthlyPerformances[] = [
+                    'attendance_percentage' => $attendancePercentage,
+                    'activityName' => $activityNames,
+                    'attendance' => $attendanceCount,
+                    'must_attend' => $mustAttendCount,
+                    'recommendation' => $attendancePercentage >= 90
+                        ? 'Great'
+                        : ($attendancePercentage >= 75
+                            ? 'Good'
+                            : 'Needs Improvement'),
+                ];
             }
 
             $reportData[] = [
                 'member' => $member,
-                'performances' => $performances, // Tambahkan data performa keseluruhan
-                'monthlyPerformances' => $monthlyPerformances, // Tambahkan data performa bulanan
+                'monthlyPerformances' => $monthlyPerformances,
             ];
 
-        }
-
-        $rerata = 0;
-
-        foreach ($reportData as $memberData) {
-            // Pastikan bulan yang diminta ada di dalam array monthlyPerformances
-            if (isset($memberData['monthlyPerformances'][$bulan_int - 1]['attendance_percentage'])) {
-                $rerata += $memberData['monthlyPerformances'][$bulan_int - 1]['attendance_percentage'];
-            } else {
-                // Handle kasus jika data tidak ditemukan untuk bulan tersebut
-                // Misalnya, log error atau berikan nilai default
-                Log::warning('Attendance percentage not found for month ' . $bulan_int);
+            // Calculate average attendance for the selected month
+            if (isset($monthlyPerformances[$bulan_int - 1]['attendance_percentage'])) {
+                $rerata += $monthlyPerformances[$bulan_int - 1]['attendance_percentage'];
+                $totalMembers++;
             }
         }
 
-        return view('admin.division.report-pdf', compact('division', 'reportData', 'selectedMonth','bulan_int','pesan','rerata'));
+        // Calculate average attendance percentage
+        $rerata = $totalMembers > 0 ? $rerata / $totalMembers : 0;
+
+        return view('admin.division.report-pdf', compact('division', 'reportData', 'selectedMonth', 'bulan_int', 'pesan', 'rerata'));
     }
 
     public function destroy($id)
