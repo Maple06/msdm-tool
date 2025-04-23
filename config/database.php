@@ -56,16 +56,8 @@ return [
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
             'prefix_indexes' => true,
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
-            'options' => [
-                PDO::MYSQL_ATTR_SSL_CA => resource_path('certificates/ca-certificate.crt'),
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true,
-            ],
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
         ],
 
         'pgsql' => [
@@ -80,7 +72,6 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
         ],
 
         'sqlsrv' => [
